@@ -236,15 +236,6 @@ BOOL Injection::_ntWriteVirtualMemory ( HANDLE  hProcess, LPVOID  lpBaseAddress,
 	return TRUE;
 }
 
-
-HMODULE WINAPI hookLLA(LPCTSTR lpFileName) {
-	HMODULE orig = nt->pLoadLibraryA(lpFileName);
-
-	std::cout << lpFileName << std::endl;
-
-	return orig;
-}
-
 bool  Injection::inject ( Sub* sub ) {
 
 	auto name = sub->product->exeName;
