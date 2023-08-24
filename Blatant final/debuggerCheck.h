@@ -11,16 +11,16 @@
 
 class DebuggerCheck {
 public:
-	DebuggerCheck ( );
-	~DebuggerCheck ( );
+	DebuggerCheck();
+	~DebuggerCheck();
 
-	bool checking ( );
+	bool checking();
 
 private:
-	bool isDebuggerCheckImpl ( );
-	bool isRemoteDebuggerPresent ( );
-	bool isNtGlobalFlag ( );
-	bool isForceFlags ( );
-	bool isMemEddit ( );
+	bool isDebuggerCheckImpl();
+	bool isRemoteDebuggerPresent();
+	bool isNtGlobalFlag();
+	bool isForceFlags();
+	bool isMemEddit();
 };
 

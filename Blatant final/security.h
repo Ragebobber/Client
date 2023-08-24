@@ -13,18 +13,18 @@ static pNtOpenProcess o_ntOpenProcess = 0;
 
 class Security {
 public:
-	Security ( );
-	~Security ( );
+	Security();
+	~Security();
 
 private:
-	DebuggerCheck* debuggerCheck = new DebuggerCheck ( );
+	DebuggerCheck* debuggerCheck = new DebuggerCheck();
 	bool dbgFound = false;
 private:
-	bool hookCheck ( );
-	std::string calcHash ( );
-	void setupHooks ( );
-	void deleteHooks ( );
-	ThreadClaller* callDebgCheck = new ThreadClaller ( );
-	ThreadClaller* callInfo = new ThreadClaller ( );
-	
+	bool hookCheck();
+	std::string calcHash();
+	void setupHooks();
+	void deleteHooks();
+	ThreadClaller* callDebgCheck = new ThreadClaller();
+	ThreadClaller* callInfo = new ThreadClaller();
+
 };

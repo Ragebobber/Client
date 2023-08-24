@@ -1,9 +1,8 @@
 #include "SDK.h"
 
- HttpStruct* httpStruct = new HttpStruct();
- NtFunctions* nt = new NtFunctions ( );
- RestClient* restClient = new RestClient ( );
- DtoImpl* dto = new DtoImpl ( );
- ApiConnector* apiConnector = new ApiConnector ( );
- Security* security = new Security ( );
- Injection* injection = new Injection ( );
+std::shared_ptr<HttpStruct> httpStruct(new HttpStruct);
+std::shared_ptr<NtFunctions> nt(new NtFunctions);
+std::unique_ptr<DtoImpl> dto(new DtoImpl);
+std::unique_ptr<ApiConnector> apiConnector(new ApiConnector);
+std::unique_ptr<Security> security(new Security);
+std::unique_ptr<Injection> injection(new Injection);
