@@ -1,134 +1,137 @@
 #include "SDK.h"
 
-LONG ntOpenProcessHook ( PHANDLE ProcessHandle, ACCESS_MASK AccessMask, POBJECT_ATTRIBUTES ObjectAttributes, CLIENT_ID* ClientID );
+LONG ntOpenProcessHook(PHANDLE ProcessHandle, ACCESS_MASK AccessMask, POBJECT_ATTRIBUTES ObjectAttributes, CLIENT_ID* ClientID);
 
-Security::Security ( ) {
+Security::Security() {
 #ifdef _DEBUG
 #else
-	callDebgCheck->start ( 5000, [&]( ) {
-		dbgFound = debuggerCheck->checking ( );
-		if ( dbgFound ) {
-			apiConnector->sendSecurityDbgInfo ( );
+	callDebgCheck->start(5000, [&]() {
+		dbgFound = debuggerCheck->checking();
+		if (dbgFound) {
+			apiConnector->sendSecurityDbgInfo();
+			apiConnector.reset();
 		}
-		if ( !hookCheck ( ) ) {
-			apiConnector->sendSecurityDbgInfo ( );
+		if (!hookCheck()) {
+			apiConnector->sendSecurityDbgInfo();
+			apiConnector.reset();
 		}
 		}
 	);
 	//TODO App hash checksum need for more protection?
-	callInfo->start ( 10000, [&]( ) {
-		dto->secInfReq->hash = calcHash ( );
-			if ( apiConnector->sendSecurityInfo ( ) ) {
-				//ERROR HASH Protect
-				//exit ( 0 );
+	callInfo->start(10000, [&]() {
+		dto->secInfReq->hash = calcHash();
+		if (apiConnector->sendSecurityInfo()) {
+			apiConnector.reset();
+			//ERROR HASH Protect
+			//exit ( 0 );
 
-			}
-		} 
+		}
+		}
 	);
 
-	setupHooks ( );
+	setupHooks();
 #endif
 }
-	
 
-Security::~Security ( ) {
-	deleteHooks ( );
+
+Security::~Security() {
+	deleteHooks();
 }
 
-bool Security::hookCheck ( ) {
+bool Security::hookCheck() {
 	OBF_BEGIN
-	THREADINFOCLASS Info = (THREADINFOCLASS) 0x26;
-	auto chekHook = nt->pNtSetInformationThread ( (HANDLE) 0xFFFFF, Info, NULL, 0 );
-	IF ( NT_SUCCESS ( V(chekHook) ) ) {
-		RETURN ( false );
+		THREADINFOCLASS Info = (THREADINFOCLASS)0x26;
+	auto chekHook = nt->pNtSetInformationThread((HANDLE)0xFFFFF, Info, NULL, 0);
+	IF(NT_SUCCESS(V(chekHook))) {
+		RETURN(false);
 	}
 	ENDIF
-	RETURN ( true );
+		RETURN(true);
 	OBF_END
 
 }
 
-std::string Security::calcHash ( ) {
-	
-	auto filePath = []{
+std::string Security::calcHash() {
+
+	auto filePath = [] {
 		char buffer[MAX_PATH];
-		GetModuleFileNameA ( NULL, buffer, MAX_PATH );
-		std::string::size_type pos = std::string ( buffer ).find_last_of ( "\\/" );
-		return std::string ( buffer );
-	}();
+		GetModuleFileNameA(NULL, buffer, MAX_PATH);
+		std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+		return std::string(buffer);
+		}();
 
-	std::ifstream file ( filePath, std::ios::binary );
-	if ( !file ) {
-		return "";
-	}
+		std::ifstream file(filePath, std::ios::binary);
+		if (!file) {
+			return "";
+		}
 
-	constexpr const std::size_t buffer_size { 1 << 12 };
-	char buffer[buffer_size];
+		constexpr const std::size_t buffer_size{ 1 << 12 };
+		char buffer[buffer_size];
 
-	unsigned char hash[SHA256_DIGEST_LENGTH] = { 0 };
+		unsigned char hash[SHA256_DIGEST_LENGTH] = { 0 };
 
-	SHA256_CTX ctx;
-	SHA256_Init ( &ctx );
+		SHA256_CTX ctx;
+		SHA256_Init(&ctx);
 
-	while ( file.good ( ) ) {
-		file.read ( buffer, buffer_size );
-		SHA256_Update ( &ctx, buffer, (size_t)file.gcount ( ) );
-	}
-	SHA256_Final ( hash, &ctx );
-	file.close ( );
+		while (file.good()) {
+			file.read(buffer, buffer_size);
+			SHA256_Update(&ctx, buffer, (size_t)file.gcount());
+		}
+		SHA256_Final(hash, &ctx);
+		file.close();
 
-	std::ostringstream os;
-	os << std::hex << std::setfill ( '0' );
+		std::ostringstream os;
+		os << std::hex << std::setfill('0');
 
-	for ( int i = 0; i < SHA256_DIGEST_LENGTH; ++i ) {
-		os << std::setw ( 2 ) << static_cast<unsigned int>(hash[i]);
-	}
+		for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
+			os << std::setw(2) << static_cast<unsigned int>(hash[i]);
+		}
 
-	return os.str ( );
+		return os.str();
 }
 
 
-NTSTATUS ntOpenProcessHook ( PHANDLE ProcessHandle, ACCESS_MASK AccessMask, POBJECT_ATTRIBUTES ObjectAttributes, CLIENT_ID* ClientID ) {
-	NTSTATUS orig = nt->pZwOpenProcess ( ProcessHandle , AccessMask , ObjectAttributes , ClientID );
+NTSTATUS ntOpenProcessHook(PHANDLE ProcessHandle, ACCESS_MASK AccessMask, POBJECT_ATTRIBUTES ObjectAttributes, CLIENT_ID* ClientID) {
+	NTSTATUS orig = nt->pZwOpenProcess(ProcessHandle, AccessMask, ObjectAttributes, ClientID);
 
 	HANDLE PID;
 	__try {
 		PID = ClientID->UniqueProcess;
 	}
-	__except ( EXCEPTION_EXECUTE_HANDLER ) {
+	__except (EXCEPTION_EXECUTE_HANDLER) {
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	if ( GetCurrentProcess() == (HANDLE) PID ) 
-	{		
-		return 0xC0000022L; 
+	if (GetCurrentProcess() == (HANDLE)PID)
+	{
+		return 0xc0000022;
 	}
 
 	return orig;
 }
 
-void Security::setupHooks ( ) {
-	
-	DetourRestoreAfterWith ( );
+void Security::setupHooks() {
 
-	DetourTransactionBegin ( );
-	DetourUpdateThread ( GetCurrentThread ( ) );
+	DetourRestoreAfterWith();
 
-	DetourAttach (&(PVOID&) nt->pZwOpenProcess, ntOpenProcessHook );
-	
-	LONG error = DetourTransactionCommit ( );
-	if ( error != NO_ERROR ) {
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+
+	DetourAttach(&(PVOID&)nt->pZwOpenProcess, ntOpenProcessHook);
+
+	LONG error = DetourTransactionCommit();
+	if (error != NO_ERROR) {
 		//Log md
 	}
 }
 
-void Security::deleteHooks ( ) {
-	DetourTransactionBegin ( );
-	DetourUpdateThread ( GetCurrentThread ( ) );
-	DetourDetach ( &(PVOID&) nt->pZwOpenProcess, ntOpenProcessHook );
-	
-	LONG error = DetourTransactionCommit ( );
-	if ( error != NO_ERROR ) {
+void Security::deleteHooks() {
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourDetach(&(PVOID&)nt->pZwOpenProcess, ntOpenProcessHook);
+
+	LONG error = DetourTransactionCommit();
+	if (error != NO_ERROR) {
 		//Log md
 	}
 }
