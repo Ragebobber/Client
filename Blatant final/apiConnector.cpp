@@ -62,6 +62,7 @@ void ApiConnector::checkHealth() {
 	auto checkHealthResponse = restClient->getRequest(S_API_HEALTH_ENDPOINT);
 	if (checkHealthResponse && !checkHealthResponse->body.empty() && json::parse(checkHealthResponse->body) == S_API_HEALTH_RESPONSE) {
 		isConnected = true;
+		message.clear();
 		return;
 	}
 	message = httpStruct->error;
