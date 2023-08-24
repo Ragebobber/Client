@@ -9,11 +9,9 @@ Security::Security() {
 		dbgFound = debuggerCheck->checking();
 		if (dbgFound) {
 			apiConnector->sendSecurityDbgInfo();
-			apiConnector.reset();
 		}
 		if (!hookCheck()) {
 			apiConnector->sendSecurityDbgInfo();
-			apiConnector.reset();
 		}
 		}
 	);
@@ -21,10 +19,6 @@ Security::Security() {
 	callInfo->start(10000, [&]() {
 		dto->secInfReq->hash = calcHash();
 		if (apiConnector->sendSecurityInfo()) {
-			apiConnector.reset();
-			//ERROR HASH Protect
-			//exit ( 0 );
-
 		}
 		}
 	);
